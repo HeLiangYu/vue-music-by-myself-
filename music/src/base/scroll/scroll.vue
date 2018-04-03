@@ -9,6 +9,7 @@
 
   export default {
     props: {
+      // 有三个值1,2,3
       probeType: {
         type: Number,
         default: 1
