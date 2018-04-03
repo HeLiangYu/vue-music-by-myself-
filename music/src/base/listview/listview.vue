@@ -25,6 +25,9 @@
         </li>
       </ul>
     </div>
+    <div class="fixed-list" v-show="fixedTitle">
+      <h2 class="fixed-title">{{fixedTitle}}</h2>
+    </div>
     <div v-show="!data.length" class="loading-wrapper">
       <loading></loading>
     </div>
@@ -52,7 +55,7 @@ export default {
       listHeight: [],
       scrollY: -1,
       currentIndex: 0,
-      probeType: 3
+      probeType: 3,
     }
   },
   created() {
@@ -94,6 +97,8 @@ export default {
       }
     },
     _scrollTo(index) {
+      this.scrollY = -this.listHeight[index];
+      console.log(this.scrollY)
       this.$refs.listview.scrollToElement(this.$refs.listGroup[index], 2000);
     }
   },
@@ -102,6 +107,12 @@ export default {
       return this.data.map((group) => {
         return group.title.substr(0, 1);
       });
+    },
+    fixedTitle() {
+      if(this.scrollY > 0){
+        return ''
+      }
+      return this.data[this.currentIndex].title ? this.data[this.currentIndex].title : '';
     }
   },
   watch: {
@@ -114,10 +125,12 @@ export default {
       const listHeight = this.listHeight;
 
       // 当滚动到顶部后
-      if(newY < 0){
+      if(newY > 0){
         this.currentIndex = 0;
+        return 
       }
       
+      // 当滚动到中间
       for(let i=0; i<this.listHeight.length-1; i++){
         let height1 = listHeight[i];
         let height2 = listHeight[i+1];
@@ -126,7 +139,10 @@ export default {
           return
         }
       }
-      this.currentIndex = 0;
+
+      // 当滚动到底部时
+
+      this.currentIndex = listHeight.length - 1;
     }
   }
 }
@@ -182,6 +198,19 @@ export default {
 .active{
   color: #ffd93b;
   border-bottom: none;
+}
+
+.fixed-list{
+  position: absolute;
+  width: 100%;
+  top: 0;
+  left: 0;
+  text-align: left;
+  background-color: #555;
+}
+.fixed-list>h2{
+  text-indent: 0.5em;
+  padding: 5px 0;
 }
 </style>
 
