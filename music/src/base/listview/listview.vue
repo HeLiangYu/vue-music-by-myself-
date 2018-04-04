@@ -25,7 +25,7 @@
         </li>
       </ul>
     </div>
-    <div class="fixed-list" v-show="fixedTitle">
+    <div class="fixed-list" v-show="fixedTitle" ref="fixed">
       <h2 class="fixed-title">{{fixedTitle}}</h2>
     </div>
     <div v-show="!data.length" class="loading-wrapper">
@@ -40,6 +40,7 @@ import loading from '../loading/loading';
 import {getAttr} from '../../common/js/dom';
 
 const ANCHOR_HEIGHT = 23;
+const TITLE_HEIGHT = 38;
 
 export default {
   props: {
@@ -56,6 +57,7 @@ export default {
       scrollY: -1,
       currentIndex: 0,
       probeType: 3,
+      diff: 0,
     }
   },
   created() {
@@ -72,6 +74,7 @@ export default {
       let touchIndex = e.touches[0];
       this.touch.y1 = touchIndex.pageY;
       this.touch.anchorindedx = anchorindex;
+      console.log('锚点'+anchorindex);
       this._scrollTo(anchorindex);
     },
     onShortTouchMove(e) {
@@ -97,10 +100,18 @@ export default {
       }
     },
     _scrollTo(index) {
-      this.scrollY = -this.listHeight[index];
-      console.log(this.scrollY)
+      if(!index && index!==0){
+        return ;
+      }
+      if(index<0){
+        index = 0;
+      }else if(index > this.data.length-1){
+        index = this.data.length-1;
+      }
+      this.scrollY = -this.listHeight[index]; // 这里的scrollY将会在watch中监听，然后currentIndex会改变
       this.$refs.listview.scrollToElement(this.$refs.listGroup[index], 2000);
-    }
+      console.log('index:'+index);
+    },
   },
   computed: {
     shortList (){
@@ -108,14 +119,20 @@ export default {
         return group.title.substr(0, 1);
       });
     },
+    // 固定每一栏的标题到头部
     fixedTitle() {
       if(this.scrollY > 0){
-        return ''
+        return '';
       }
-      return this.data[this.currentIndex].title ? this.data[this.currentIndex].title : '';
+      if(this.data[this.currentIndex]){
+        return this.data[this.currentIndex].title;
+      }else{
+        return '';
+      }
     }
   },
   watch: {
+    // 监听数据，数据有变化就重新渲染
     data () {
       setTimeout(() => {
         this._calculateHeight();
@@ -127,22 +144,33 @@ export default {
       // 当滚动到顶部后
       if(newY > 0){
         this.currentIndex = 0;
-        return 
+        return ;
       }
-      
+
       // 当滚动到中间
       for(let i=0; i<this.listHeight.length-1; i++){
         let height1 = listHeight[i];
         let height2 = listHeight[i+1];
-        if(!height2 || (-newY>height1 && -newY<height2)){
+        if(-newY>=height1 && -newY<=height2){
+          this.diff = height2 + newY;
           this.currentIndex = i;
-          return
+      console.log('current:'+this.currentIndex)
+          return ;
         }
       }
 
       // 当滚动到底部时
-
       this.currentIndex = listHeight.length - 1;
+    },
+
+    // 标题平滑消失效果
+    diff(newVal){
+      let fixedTop = (newVal>0 && newVal<TITLE_HEIGHT) ? newVal-TITLE_HEIGHT : 0;
+      if(fixedTop === newVal){
+        return ;
+      }
+      this.fixedTop = fixedTop;
+      this.$refs.fixed.style.transform = `translate3d(0, ${fixedTop}px, 0)`;
     }
   }
 }
@@ -152,6 +180,8 @@ export default {
 .singer{
   height: 100%;
   overflow: hidden;
+  z-index: 1;
+  position: relative;
 }
 .singer-list{
   text-align: left;
@@ -207,6 +237,7 @@ export default {
   left: 0;
   text-align: left;
   background-color: #555;
+  z-index: 9;
 }
 .fixed-list>h2{
   text-indent: 0.5em;
